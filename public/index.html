@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Horizon Portal | Complete System Architecture</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Grand Horizon Hotel</h1>
+            <p>Production Cloud Platform Architecture Dashboard</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Error Reporting Notification Area -->
+        <div id="alert-banner" class="alert hidden"></div>
+
+        <!-- Room Catalogue Section -->
+        <section id="rooms-section">
+            <h2>Select Your Target Accommodation</h2>
+            <div id="rooms-grid" class="grid"></div>
+        </section>
+
+        <!-- Transactional Booking Form Card -->
+        <section id="booking-section" class="card hidden">
+            <h2>Complete Reservation Agreement</h2>
+            <form id="booking-form">
+                <input type="hidden" id="selected-room-id">
+                
+                <div class="form-group">
+                    <label>Selected Asset Tier:</label>
+                    <input type="text" id="room-display" readonly autocomplete="off">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="check-in">Check-In Arrival:</label>
+                        <input type="date" id="check-in" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="check-out">Check-Out Departure:</label>
+                        <input type="date" id="check-out" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="guest-name">Legal Guest Identity (Full Name):</label>
+                    <input type="text" id="guest-name" placeholder="John Doe" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="guest-email">Secure Communication Email Address:</label>
+                    <input type="email" id="guest-email" placeholder="j.doe@domain.com" required autocomplete="email">
+                </div>
+
+                <!-- MoSCoW Feature: Dynamic Live Valuation Engine -->
+                <div id="pricing-preview" class="price-preview-box hidden">
+                    <p>Calculated Interval: <span id="preview-days">0</span> night(s)</p>
+                    <p class="price-total">Gross Aggregate Cost: $<span id="preview-total">0</span></p>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Process Reservation Ledger</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelBooking()">Dismiss Action</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Booking Confirmed State View -->
+        <section id="receipt-section" class="card success-card hidden">
+            <h2>🎉 Transaction Layer Validated & Confirmed</h2>
+            <div id="receipt-details"></div>
+            <button class="btn btn-primary" onclick="resetView()">Submit Another Application</button>
+        </section>
+    </main>
+
+    <script>
+        let selectedRoomRate = 0;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set minimum check-in date criteria dynamically to current local time tracking window
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('check-in').min = todayStr;
+            document.getElementById('check-out').min = todayStr;
+
+            try {
+                const res = await fetch('/api/rooms');
+                const parsed = await res.json();
+                
+                if (parsed.status !== 'success') throw new Error(parsed.message);
+
+                const grid = document.getElementById('rooms-grid');
+                grid.innerHTML = parsed.data.rooms.map(room => `
+                    <div class="card room-card">
+                        <img src="${room.image}" alt="${room.type}">
+                        <div class="room-info">
+                            <h3>${room.type}</h3>
+                            <p class="price">$${room.price} / night</p>
+                            <p class="status">System Directory ID: #${room.id}</p>
+                            <button class="btn btn-primary btn-block" onclick="selectRoom(${room.id}, '${room.type}', ${room.price})">Select Package</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                showAlert(`Failed to safely pull infrastructure room data assets: ${err.message}`);
+            }
+        });
+
+        function selectRoom(id, type, price) {
+            selectedRoomRate = price;
+            document.getElementById('selected-room-id').value = id;
+            document.getElementById('room-display').value = `${type} — ($${price}/Night Baseline)`;
+            document.getElementById('booking-section').classList.remove('hidden');
+            document.getElementById('receipt-section').classList.add('hidden');
+            clearAlert();
+            calculateLiveCost();
+            document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Real-time pricing recalculations
+        function calculateLiveCost() {
+            const cin = document.getElementById('check-in').value;
+            const cout = document.getElementById('check-out').value;
+            const box = document.getElementById('pricing-preview');
+
+            if (cin && cout) {
+                const days = Math.ceil((new Date(cout) - new Date(cin)) / (1000 * 60 * 60 * 24));
+                if (days > 0 && selectedRoomRate > 0) {
+                    document.getElementById('preview-days').innerText = days;
+                    document.getElementById('preview-total').innerText = days * selectedRoomRate;
+                    box.classList.remove('hidden');
+                    return;
+                }
+            }
+            box.classList.add('hidden');
+        }
+
+        document.getElementById('check-in').addEventListener('change', (e) => {
+            document.getElementById('check-out').min = e.target.value;
+            calculateLiveCost();
+        });
+        document.getElementById('check-out').addEventListener('change', calculateLiveCost);
+
+        function showAlert(msg) {
+            const el = document.getElementById('alert-banner');
+            el.innerText = msg;
+            el.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function clearAlert() {
+            document.getElementById('alert-banner').classList.add('hidden');
+        }
+
+        function cancelBooking() {
+            document.getElementById('booking-form').reset();
+            document.getElementById('booking-section').classList.add('hidden');
+            document.getElementById('pricing-preview').classList.add('hidden');
+            clearAlert();
+        }
+
+        function resetView() {
+            document.getElementById('receipt-section').classList.add('hidden');
+            cancelBooking();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        document.getElementById('booking-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAlert();
+
+            const payload = {
+                roomId: document.getElementById('selected-room-id').value,
+                guestName: document.getElementById('guest-name').value,
+                email: document.getElementById('guest-email').value,
+                checkIn: document.getElementById('check-in').value,
+                checkOut: document.getElementById('check-out').value
+            };
+
+            try {
+                const res = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.message || 'Transmission exception occurred during write commit routines.');
+                }
+
+                const conf = data.confirmation;
+                document.getElementById('receipt-details').innerHTML = `
+                    <div class="receipt-block">
+                        <p><strong>System Transaction Index:</strong> <span class="badge-code">${conf.bookingId}</span></p>
+                        <p><strong>Registered Operator:</strong> ${conf.guestName}</p>
+                        <p><strong>Target Assigned Unit:</strong> ${conf.roomType} (Room #${conf.roomId})</p>
+                        <p><strong>Temporal Schedule Windows:</strong> ${conf.checkIn} to ${conf.checkOut} (${conf.totalNights} Nights)</p>
+                        <hr>
+                        <p class="final-cost"><strong>Financial Settlement Audited:</strong> $${conf.totalPaid}.00 Paid</p>
+                    </div>
+                `;
+
+                document.getElementById('booking-section').classList.add('hidden');
+                document.getElementById('receipt-section').classList.remove('hidden');
+                document.getElementById('receipt-section').scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                showAlert(err.message);
+            }
+        });
+    </script>
+</body>
+</html>
